@@ -41,6 +41,39 @@ sPaper.ChangeDutyCycle(0)
 sPlatform1.ChangeDutyCycle(0)
 sPlatform2.ChangeDutyCycle(0)
 
+# Setup Ultrasonic Sensor
+GPIO_TRIGGER = 40
+GPIO_ECHO = 38
+GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+GPIO.setup(GPIO_ECHO, GPIO.IN)
+
+def distance():
+    # set Trigger to HIGH
+    GPIO.output(GPIO_TRIGGER, True)
+ 
+    # set Trigger after 0.01ms to LOW
+    time.sleep(0.00001)
+    GPIO.output(GPIO_TRIGGER, False)
+ 
+    StartTime = time.time()
+    StopTime = time.time()
+ 
+    # save StartTime
+    while GPIO.input(GPIO_ECHO) == 0:
+        StartTime = time.time()
+ 
+    # save time of arrival
+    while GPIO.input(GPIO_ECHO) == 1:
+        StopTime = time.time()
+ 
+    # time difference between start and arrival
+    TimeElapsed = StopTime - StartTime
+    # multiply with the sonic speed (34300 cm/s)
+    # and divide by 2, because there and back
+    distance = (TimeElapsed * 34300) / 2
+ 
+    return distance
+
 # Set up camera constants
 IM_WIDTH = 640
 IM_HEIGHT = 480   
@@ -208,6 +241,29 @@ for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=
         sPaper.ChangeDutyCycle(0)
         sPlatform.ChangeDutyCycle(0)
         sPlatform2.ChangeDutyCycle(0)
+        
+    else:
+        dist = distance()
+        
+        # If waste detector cannot identify class of the object, 
+        # it is classified as general waste
+        # dist=50 is the length of waste detection compartment
+        # dist<50 implies that there is present of waste
+        if dist < 50:
+            sPlatform2.ChangeDutyCycle(2.5)
+            time.sleep(0.5)
+            sPlatform2.ChangeDutyCycle(0)
+            time.sleep(0.2)
+            sPlatform.ChangeDutyCycle(7)
+            time.sleep(0.2)
+            sPlatform.ChangeDutyCycle(0)
+            time.sleep(2)
+            sPlatform.ChangeDutyCycle(2.5)
+            time.sleep(0.5)
+            sPlatform2.ChangeDutyCycle(7.5)
+            time.sleep(0.5)
+            sPlatform.ChangeDutyCycle(0)
+            sPlatform2ChangeDutyCycle(0)
         
     # Press 'q' to quit
     if cv2.waitKey(1) == ord('q'):
